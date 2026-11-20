@@ -122,10 +122,9 @@
     var c = core(), now = c.now, r = c.r;
     var out = hud();
     if (!(+S.income > 0)) {
-      return out + '<h1>Bienvenido</h1><div class="card"><h2>1. Carga tu plan</h2><p class="mute">Copia tu código del chat, ábrelo aquí con un toque y ya queda todo: ingresos, pagos, metas y gastos.</p>' +
-        '<button class="full gold" data-a="pastecode">Pegar mi código</button>' +
-        '<label>O elige el archivo de tu plan (el más seguro)<input type="file" id="impfile2" accept=".json,.txt,application/json,text/plain"></label>' +
-        '<label>¿No te deja pegar? Pégalo aquí<textarea id="imp2" rows="3" placeholder="SF1:..."></textarea></label><button class="sec full" data-a="import2">Cargar plan</button>' +
+      return out + '<h1>Bienvenido</h1><div class="card"><h2>1. Carga tu plan</h2><p class="mute">Con el archivo queda todo: ingresos, pagos, metas y gastos.</p>' +
+        '<label>Elige el archivo de tu plan<input type="file" id="impfile2" accept=".json,.txt,application/json,text/plain"></label>' +
+        '<label>O pega tu código aquí<textarea id="imp2" rows="3" placeholder="SF1:..."></textarea></label><button class="full gold" data-a="import2">Cargar plan</button>' +
         (ui.msg ? '<div class="note">' + esc(ui.msg) + '</div>' : '') + '</div>' +
         '<div class="card"><h2>2. O empieza desde cero</h2><p class="mute">Captura tu ingreso y tus gastos fijos en Ajustes.</p><button class="sec full" data-a="goto" data-v="ajustes">Ir a Ajustes</button></div>';
     }
@@ -150,20 +149,14 @@
 
     out += '<div class="card"><h2>Registrar gasto</h2><label>Monto<input id="q-amt" type="number" inputmode="decimal" step="any" placeholder="0" value="' + esc(ui.amt) + '"></label>' +
       '<label>¿En qué fue?</label>' + tiles(TIPOS, ui.tipo, 'tipo') +
-      (ui.more ? '<label>Pagado con</label>' + tiles(METODOS, ui.met, 'met', function (m) { return EMO[m.k]; }) +
+      '<label>Pagado con</label>' + tiles(METODOS, ui.met, 'met', function (m) { return EMO[m.k]; }) +
         '<label>Fecha<input id="q-date" type="date" max="' + todayKey + '" value="' + esc(ui.date || todayKey) + '"></label>' +
-        '<label>Nota (opcional)<input id="q-note" type="text" placeholder="Detalle" value="' + esc(ui.note) + '"></label>'
-        : '<div class="row"><span class="mute">Con <b>' + pick(METODOS, ui.met).n + '</b>, hoy</span><button class="chip" data-a="more">Cambiar</button></div>') +
+        '<label>Nota (opcional)<input id="q-note" type="text" placeholder="Detalle" value="' + esc(ui.note) + '"></label>' +
       '<div class="mute small">Cuenta en el sobre de ' + esc(L.ENV_NAMES[pick(TIPOS, ui.tipo).env].split(' ')[0]) + (pick(METODOS, ui.met).cash ? ' y baja tu dinero disponible.' : '. Con tarjeta de crédito no baja tu efectivo; sube la cuenta que pagas después.') + '</div>' +
       '<button class="full" data-a="addexp">Guardar gasto</button>' + (ui.msg ? '<div class="mute">' + esc(ui.msg) + '</div>' : '') + '</div>';
 
     out += viewCountdown();
 
-    if (list.length) {
-      out += '<div class="card"><h2>Esta semana</h2>' + list.slice().reverse().map(function (e) {
-        return '<div class="row"><span>' + tipoOf(e).e + ' ' + esc(tipoOf(e).n) + (e.note ? ' · ' + esc(e.note) : '') + '<br><span class="mute small">' + fdate(L.parseDate(e.date)) + (pick(METODOS, e.met) ? ' · ' + pick(METODOS, e.met).n : '') + '</span></span><span><b>' + mx(e.amount) + '</b> <button class="del" data-a="delexp" data-v="' + e.id + '">✕</button></span></div>';
-      }).join('') + '</div>';
-    }
     return out;
   }
 
@@ -323,7 +316,7 @@
     out += '<div class="card"><h2>Ahorro e inversión</h2><div class="big ok">' + mx(S.retirement.current) + '</div><p class="mute">Lo que ya apartaste en cajitas, CETES, Afore u otra inversión. Cada aportación suma XP.</p><div class="grid2"><input type="number" inputmode="decimal" step="any" placeholder="Aportar $" id="sv-amt"><button data-a="save">Aportar</button></div></div>';
     // retiro
     var rt = S.retirement, f = L.retirementFV(rt);
-    out += '<div class="card"><h2>Retiro</h2><div class="grid2">' + inp('retirement.monthly', 'Aportación mensual $') + inp('retirement.years', 'Años') + inp('retirement.current', 'Ya tengo $') + inp('retirement.realReturn', 'Rendimiento real anual %') + '</div>' +
+    out += '<div class="card"><h2>Retiro</h2><div class="grid2">' + inp('retirement.monthly', 'Aportación mensual $') + inp('retirement.years', 'Años') + inp('retirement.realReturn', 'Rendimiento real anual %') + '</div>' +
       '<div class="row"><span>Aportarías</span><b>' + mx(f.contributed) + '</b></div><div class="row"><span>Tendrías (en pesos de hoy)</span><b>' + mx(f.fv) + '</b></div><div class="row"><span>Renta mensual aprox. (regla del 4%)</span><b>' + mx(f.monthlyIncome4) + '</b></div>' +
       '<p class="mute small">El rendimiento real es un supuesto tuyo (rendimiento menos inflación) y puede ser menor o negativo. No es una promesa ni una recomendación de producto.</p></div>';
     out += '<div class="sect">Tarjeta en dólares</div>' + viewTarjeta().replace('<h1>Tarjeta en dólares</h1>', '');
@@ -346,8 +339,7 @@
       var p = L.usdPayoff(u.balanceUSD, u.apr || 0, s[1] / fx);
       return '<tr><td>' + s[0] + '</td><td>' + (p.months == null ? '—' : p.months) + '</td><td>' + usd(p.interestUSD) + '</td></tr>';
     }).join('') + '</table><p class="mute small">Cálculo con tasa fija (la tuya es variable) y tipo de cambio fijo. Si pagas en dólares directamente evitas comisiones de conversión.</p></div>';
-    out += '<div class="card"><div class="grid2">' + inp('usdCard.monthlyMXN', 'Pago mensual (MXN)') + inp('usdCard.fx', 'Tipo de cambio') + '</div>' +
-      '<h3>Registrar un pago hecho</h3><div class="grid2"><input type="number" inputmode="decimal" step="any" placeholder="Pagué $ (MXN)" id="usd-pay"><button data-a="usdpay">Registrar</button></div><p class="mute small">Baja el saldo según el tipo de cambio. Si tu estado de cuenta dice otra cifra, corrígela en Ajustes.</p></div>';
+    out += '<div class="card"><h2>Registrar un pago hecho</h2><div class="grid2"><input type="number" inputmode="decimal" step="any" placeholder="Pagué $ (MXN)" id="usd-pay"><button data-a="usdpay">Registrar</button></div><p class="mute small">Baja el saldo según el tipo de cambio. Si tu estado de cuenta dice otra cifra, corrígela en Ajustes.</p></div>';
     return out;
   }
 
@@ -368,20 +360,19 @@
     out += listEditor('Gastos fijos', 'fixed', [['name', 'Nombre', 'text'], ['amount', 'Monto mensual $'], ['startMonth', 'Desde (opcional)', 'month'], ['endMonth', 'Hasta (opcional)', 'month']], { name: '', amount: 0 });
     out += '<div class="card"><h2>Viajes</h2><div class="grid2">' + inp('trips.count', 'Viajes al mes') + inp('trips.tolls', 'Casetas por viaje') + inp('trips.gas', 'Gasolina por viaje') + inp('trips.food', 'Comida por viaje') + '</div></div>';
     out += listEditor('Mensualidades de tarjeta (MSI, planes)', 'installments', [['name', 'Nombre', 'text'], ['monthly', 'Monto $'], ['startMonth', 'Desde', 'month'], ['endMonth', 'Hasta', 'month']], { name: '', monthly: 0 });
-    out += listEditor('Pagos próximos', 'upcoming', [['name', 'Nombre', 'text'], ['amount', 'Monto $'], ['paid', 'Ya abonado $'], ['date', 'Fecha límite', 'date']], { id: uid(), name: '', amount: 0, paid: 0, date: '' });
+    out += listEditor('Pagos próximos', 'upcoming', [['name', 'Nombre', 'text'], ['amount', 'Monto $'], ['date', 'Fecha límite', 'date']], { id: uid(), name: '', amount: 0, paid: 0, date: '' });
     out += '<div class="card"><h2>Tarjeta en dólares</h2><div class="grid2">' + inp('usdCard.name', 'Nombre', 'text') + inp('usdCard.balanceUSD', 'Saldo US$') + inp('usdCard.apr', 'Tasa anual %', 'pct') + inp('usdCard.minUSD', 'Pago mínimo US$') + inp('usdCard.fx', 'Tipo de cambio') + inp('usdCard.monthlyMXN', 'Pago mensual $') + '</div></div>';
-    out += listEditor('Metas con fecha', 'goals', [['name', 'Nombre', 'text'], ['target', 'Meta $'], ['saved', 'Llevo $'], ['deadline', 'Fecha', 'date']], { name: '', target: 0, saved: 0, deadline: '' });
-    out += '<div class="card"><h2>Emergencia</h2><div class="grid2">' + inp('emergency.months', 'Meses de gastos') + inp('emergency.saved', 'Llevo $') + '</div></div>';
+    out += listEditor('Metas con fecha', 'goals', [['name', 'Nombre', 'text'], ['target', 'Meta $'], ['deadline', 'Fecha', 'date']], { name: '', target: 0, saved: 0, deadline: '' });
+    out += '<div class="card"><h2>Emergencia</h2><div class="grid2">' + inp('emergency.months', 'Meses de gastos') + '</div></div>';
     out += listEditor('Deseos', 'wishlist', [['name', 'Nombre', 'text'], ['need', 'Precio estimado $']], { name: '', need: 0 });
     out += '<div class="card"><h2>Auto</h2><div class="grid2">' + inp('car.name', 'Modelo', 'text') + inp('car.price', 'Precio $') + inp('car.downPct', 'Enganche %') + inp('car.apr', 'Tasa anual %', 'pct') + inp('car.months', 'Plazo (meses)') + '</div></div>';
     out += '<div class="card"><h2>Reparto del dinero sin culpa</h2><p class="mute">Porcentaje y número de veces al mes (supuestos tuyos).</p><div class="grid2">' +
       L.ENV_KEYS.map(function (k) { return inp('envelopes.' + k + '.pct', L.ENV_NAMES[k].split(' ')[0] + ' %') + inp('envelopes.' + k + '.times', L.ENV_NAMES[k].split(' ')[0] + ' veces'); }).join('') + '</div></div>';
-    out += '<div class="card"><h2>Respaldo</h2><p class="mute">Tus datos solo viven en este teléfono. Copia un respaldo de vez en cuando.</p>' +
-      '<button class="full" data-a="copy">Copiar respaldo</button><button class="sec full" data-a="download">Descargar archivo</button>' +
-      '<label>Importar (pega el respaldo aquí)<textarea id="imp" rows="4"></textarea></label><button class="sec full" data-a="import">Importar</button>' +
-      '<label>O elige un archivo<input type="file" id="impfile" accept=".json,.txt,application/json,text/plain"></label>' +
+    out += '<div class="card"><h2>Respaldo</h2><p class="mute">Tus datos solo viven en este teléfono. Descarga un respaldo de vez en cuando.</p>' +
+      '<button class="full" data-a="download">Descargar respaldo</button>' +
+      '<label>Cargar un respaldo o plan<input type="file" id="impfile" accept=".json,.txt,application/json,text/plain"></label>' +
       (ui.msg ? '<div class="note good">' + esc(ui.msg) + '</div>' : '') +
-      '<button class="sec full" data-a="refresh">Actualizar la app (versión 11)</button>' +
+      '<button class="sec full" data-a="refresh">Actualizar la app (versión 12)</button>' +
       '<button class="del full" data-a="reset">Borrar todos mis datos</button></div>';
     return out;
   }
@@ -468,11 +459,9 @@
     }
 
     var mov = ex.map(function (x) { return { kind: 'g', x: x }; }).concat(inc.map(function (x) { return { kind: 'i', x: x }; }))
-      .filter(function (m) { return ui.gf === 'todo' || (ui.gf === 'gastos' && m.kind === 'g') || (ui.gf === 'ingresos' && m.kind === 'i'); })
+      
       .sort(function (a, b) { return a.x.date < b.x.date ? 1 : a.x.date > b.x.date ? -1 : 0; });
-    out += '<div class="card"><h2>Movimientos</h2><div class="chips">' + [['todo', 'Todo'], ['gastos', 'Gastos'], ['ingresos', 'Ingresos']].map(function (f) {
-      return '<button class="chip' + (ui.gf === f[0] ? ' on' : '') + '" data-a="gf" data-v="' + f[0] + '">' + f[1] + '</button>';
-    }).join('') + '</div>' + (mov.length ? mov.map(function (m) {
+    out += '<div class="card"><h2>Movimientos</h2>' + (mov.length ? mov.map(function (m) {
       var x = m.x, d = fdate(L.parseDate(x.date));
       if (m.kind === 'g') { var t = tipoOf(x), me = pick(METODOS, x.met); return '<div class="row"><span>' + t.e + ' ' + esc(t.n) + (x.note ? ' · ' + esc(x.note) : '') + '<br><span class="mute small">' + d + (me ? ' · ' + me.n : '') + '</span></span><span><b>-' + mx(x.amount) + '</b> <button class="del" data-a="delexp" data-v="' + x.id + '">✕</button></span></div>'; }
       var it = pick(ITIPOS, x.tipo), de = pick(DESTINOS, x.dest);
@@ -495,7 +484,6 @@
     if (a === 'met') { ui.met = v; return render(); }
     if (a === 'itipo') { ui.itipo = v; return render(); }
     if (a === 'idest') { ui.idest = v; return render(); }
-    if (a === 'gf') { ui.gf = v; return render(); }
     if (a === 'gmes') { ui.gm = Math.min(0, ui.gm + parseInt(v, 10)); return render(); }
     if (a === 'addinc') {
       var ia = num('i-amt');
@@ -580,11 +568,6 @@
     }
     if (a === 'add') { var arr = getPath(S, el.dataset.p); var b = JSON.parse(el.dataset.b); if (b.id) b.id = uid(); arr.push(b); save(); return render(); }
     if (a === 'rm') { getPath(S, el.dataset.p).splice(+v, 1); save(); return render(); }
-    if (a === 'copy') {
-      var txt = JSON.stringify(S);
-      (navigator.clipboard ? navigator.clipboard.writeText(txt) : Promise.reject()).then(function () { ui.msg = 'Respaldo copiado. Pégalo en Notas o en un mensaje a ti mismo.'; render(); }, function () { ui.msg = 'No pude copiar. Usa "Descargar archivo".'; render(); });
-      return;
-    }
     if (a === 'download') {
       var blob = new Blob([JSON.stringify(S, null, 1)], { type: 'application/json' });
       var link = document.createElement('a'); link.href = URL.createObjectURL(blob); link.download = 'respaldo-sunset-fund-' + iso(new Date()) + '.json';
@@ -598,14 +581,7 @@
       Promise.all(p).then(done, done);
       return;
     }
-    if (a === 'pastecode') {
-      if (navigator.clipboard && navigator.clipboard.readText) navigator.clipboard.readText().then(function (t) { doImport(t); }, function () { ui.msg = 'Tu navegador no dejó leer el portapapeles. Pega el código en el cuadro de abajo.'; render(); });
-      else { ui.msg = 'Pega el código en el cuadro de abajo.'; render(); }
-      return;
-    }
     if (a === 'import2') { doImport(document.getElementById('imp2').value); return; }
-    if (a === 'more') { ui.more = !ui.more; return render(); }
-    if (a === 'import') { doImport(document.getElementById('imp').value); return; }
     if (a === 'reset') {
       if (window.confirm('¿Borrar todos tus datos de esta app? No se puede deshacer.')) { S = L.defaults(); save(); ui.msg = 'Datos borrados.'; ui.prevFill = 0; render(); }
     }
