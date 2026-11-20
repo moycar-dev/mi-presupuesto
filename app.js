@@ -25,7 +25,7 @@
   var MESES = ['enero', 'febrero', 'marzo', 'abril', 'mayo', 'junio', 'julio', 'agosto', 'septiembre', 'octubre', 'noviembre', 'diciembre'];
   var EMO = { efectivo: '💵', debito: '🏧', nu: '💜', discover: '🧡', bbva: '🔷', inversion: '📈', nu2: '💜', sueldo: '💼', extra: '⚡', apoyo: '🤝', venta: '🏷️' };
   function tiles(list, cur, act, emoOf) {
-    return '<div class="tiles">' + list.map(function (t) { return '<button class="tile' + (cur === t.k ? ' on' : '') + '" data-a="' + act + '" data-v="' + t.k + '"><span class="em">' + (emoOf ? emoOf(t) : t.e) + '</span>' + t.n + '</button>'; }).join('') + '</div>';
+    return '<div class="tiles' + (list.length === 4 ? ' t2' : '') + '">' + list.map(function (t) { return '<button class="tile' + (cur === t.k ? ' on' : '') + '" data-a="' + act + '" data-v="' + t.k + '"><span class="em">' + (emoOf ? emoOf(t) : t.e) + '</span>' + t.n + '</button>'; }).join('') + '</div>';
   }
   function pick(list, k) { for (var i = 0; i < list.length; i++) if (list[i].k === k) return list[i]; return null; }
   function tipoOf(e) {
@@ -34,7 +34,7 @@
     var envName = L.ENV_NAMES[e.env] ? L.ENV_NAMES[e.env].split(' ')[0] : 'Otro';
     return { k: 'env-' + e.env, e: '📦', n: envName, env: e.env };
   }
-  var ui = { tipo: 'comida', met: 'efectivo', date: '', itipo: 'sueldo', idest: 'efectivo', iamt: '', inote: '', idate: '', gm: 0, gf: 'todo', msg: '', amt: '', note: '', prevFill: 0, toast: null, levelup: 0 };
+  var ui = { tipo: 'comida', met: 'efectivo', date: '', itipo: 'sueldo', idest: 'efectivo', iamt: '', inote: '', idate: '', gm: 0, more: false, gf: 'todo', msg: '', amt: '', note: '', prevFill: 0, toast: null, levelup: 0 };
 
   // ---------- estado ----------
   function merge(base, saved) {
@@ -122,7 +122,11 @@
     var c = core(), now = c.now, r = c.r;
     var out = hud();
     if (!(+S.income > 0)) {
-      return out + '<h1>Empieza aquí</h1><div class="card"><p class="mute">Captura tu ingreso y tus gastos en <b>Ajustes</b>, o importa un respaldo que ya tengas.</p><button class="full" data-a="goto" data-v="ajustes">Ir a Ajustes</button></div>';
+      return out + '<h1>Bienvenido</h1><div class="card"><h2>1. Carga tu plan</h2><p class="mute">Copia tu código del chat, ábrelo aquí con un toque y ya queda todo: ingresos, pagos, metas y gastos.</p>' +
+        '<button class="full gold" data-a="pastecode">Pegar mi código</button>' +
+        '<label>¿No te deja pegar? Pégalo aquí<textarea id="imp2" rows="3" placeholder="SF1:..."></textarea></label><button class="sec full" data-a="import2">Cargar plan</button>' +
+        (ui.msg ? '<div class="note">' + esc(ui.msg) + '</div>' : '') + '</div>' +
+        '<div class="card"><h2>2. O empieza desde cero</h2><p class="mute">Captura tu ingreso y tus gastos fijos en Ajustes.</p><button class="sec full" data-a="goto" data-v="ajustes">Ir a Ajustes</button></div>';
     }
     var allowance = r.funPool / L.WEEKS;
     var wk = monday(now), wkEnd = new Date(wk.getFullYear(), wk.getMonth(), wk.getDate() + 7);
@@ -145,9 +149,10 @@
 
     out += '<div class="card"><h2>Registrar gasto</h2><label>Monto<input id="q-amt" type="number" inputmode="decimal" step="any" placeholder="0" value="' + esc(ui.amt) + '"></label>' +
       '<label>¿En qué fue?</label>' + tiles(TIPOS, ui.tipo, 'tipo') +
-      '<label>Pagado con</label>' + tiles(METODOS, ui.met, 'met', function (m) { return EMO[m.k]; }) +
-      '<label>Fecha<input id="q-date" type="date" max="' + todayKey + '" value="' + esc(ui.date || todayKey) + '"></label>' +
-      '<label>Nota (opcional)<input id="q-note" type="text" placeholder="Detalle" value="' + esc(ui.note) + '"></label>' +
+      (ui.more ? '<label>Pagado con</label>' + tiles(METODOS, ui.met, 'met', function (m) { return EMO[m.k]; }) +
+        '<label>Fecha<input id="q-date" type="date" max="' + todayKey + '" value="' + esc(ui.date || todayKey) + '"></label>' +
+        '<label>Nota (opcional)<input id="q-note" type="text" placeholder="Detalle" value="' + esc(ui.note) + '"></label>'
+        : '<div class="row"><span class="mute">Con <b>' + pick(METODOS, ui.met).n + '</b>, hoy</span><button class="chip" data-a="more">Cambiar</button></div>') +
       '<div class="mute small">Cuenta en el sobre de ' + esc(L.ENV_NAMES[pick(TIPOS, ui.tipo).env].split(' ')[0]) + (pick(METODOS, ui.met).cash ? ' y baja tu dinero disponible.' : '. Con tarjeta de crédito no baja tu efectivo; sube la cuenta que pagas después.') + '</div>' +
       '<button class="full" data-a="addexp">Guardar gasto</button>' + (ui.msg ? '<div class="mute">' + esc(ui.msg) + '</div>' : '') + '</div>';
 
@@ -196,8 +201,8 @@
       { n: 9, e: '😈', t: 'El Diablito', d: 'Tarjeta de EUA en cero', ok: (+u.startUSD > 0) && +u.balanceUSD <= 0 },
       { n: 10, e: '🌳', t: 'El Árbol', d: 'Fondo de emergencia completo', ok: tgt > 0 && em.saved >= tgt },
       { n: 11, e: '☀️', t: 'El Sol', d: '$10,000 ahorrados en total', ok: dep.ahorro >= 10000 },
-      { n: 13, e: '🎮', t: 'El Control', d: 'Junta tu meta sin prisa', ok: S.wishlist.length > 0 && S.wishlist.reduce(function (t, w) { return t + (+w.need || 0); }, 0) > 0 && (+S.wishSaved || 0) >= S.wishlist.reduce(function (t, w) { return t + (+w.need || 0); }, 0) },
-      { n: 12, e: '👑', t: 'La Corona', d: 'Llega al nivel 10', ok: L.levelInfo(L.xpTotal(S)).level >= 10 }
+      { n: 12, e: '👑', t: 'La Corona', d: 'Llega al nivel 10', ok: L.levelInfo(L.xpTotal(S)).level >= 10 },
+      { n: 13, e: '🎮', t: 'El Control', d: 'Junta tu meta sin prisa', ok: S.wishlist.length > 0 && S.wishlist.reduce(function (t, w) { return t + (+w.need || 0); }, 0) > 0 && (+S.wishSaved || 0) >= S.wishlist.reduce(function (t, w) { return t + (+w.need || 0); }, 0) }
     ];
   }
 
@@ -508,12 +513,12 @@
       var amt = num('q-amt');
       if (!(amt > 0)) { ui.msg = 'Escribe un monto.'; return render(); }
       return act(function () {
-        var tp = pick(TIPOS, ui.tipo), me = pick(METODOS, ui.met), qd = document.getElementById('q-date').value || iso(new Date());
+        var tp = pick(TIPOS, ui.tipo), me = pick(METODOS, ui.met), qd = ui.date || iso(new Date());
         if (qd > iso(new Date())) qd = iso(new Date());
         var cd = me.cash ? -amt : 0;
         if (!S.cash) S.cash = { amount: 0 };
         S.cash.amount = (+S.cash.amount || 0) + cd;
-        S.expenses.push({ id: uid(), date: qd, amount: amt, env: tp.env, tipo: tp.k, met: me.k, note: document.getElementById('q-note').value.trim(), cashDelta: cd });
+        S.expenses.push({ id: uid(), date: qd, amount: amt, env: tp.env, tipo: tp.k, met: me.k, note: (ui.note || '').trim(), cashDelta: cd });
         ui.msg = 'Guardado.'; ui.amt = ''; ui.note = ''; ui.date = '';
       });
     }
@@ -566,17 +571,35 @@
       var link = document.createElement('a'); link.href = URL.createObjectURL(blob); link.download = 'respaldo-sunset-fund-' + iso(new Date()) + '.json';
       document.body.appendChild(link); link.click(); link.remove(); return;
     }
+    if (a === 'pastecode') {
+      if (navigator.clipboard && navigator.clipboard.readText) navigator.clipboard.readText().then(function (t) { doImport(t); }, function () { ui.msg = 'Tu navegador no dejó leer el portapapeles. Pega el código en el cuadro de abajo.'; render(); });
+      else { ui.msg = 'Pega el código en el cuadro de abajo.'; render(); }
+      return;
+    }
+    if (a === 'import2') { doImport(document.getElementById('imp2').value); return; }
+    if (a === 'more') { ui.more = !ui.more; return render(); }
     if (a === 'import') { doImport(document.getElementById('imp').value); return; }
     if (a === 'reset') {
       if (window.confirm('¿Borrar todos tus datos de esta app? No se puede deshacer.')) { S = L.defaults(); save(); ui.msg = 'Datos borrados.'; ui.prevFill = 0; render(); }
     }
   });
+  function decodePlan(txt) {
+    txt = String(txt || '').trim();
+    var m = txt.match(/SF1:([A-Za-z0-9_\-+\/=]+)/) || txt.match(/#plan=([A-Za-z0-9_\-+\/=]+)/);
+    if (m) {
+      var b = m[1].replace(/-/g, '+').replace(/_/g, '/');
+      while (b.length % 4) b += '=';
+      txt = decodeURIComponent(escape(atob(b)));
+    }
+    return JSON.parse(txt);
+  }
   function doImport(txt) {
     try {
-      var o = JSON.parse(txt);
+      var o = decodePlan(txt);
       if (!o || typeof o !== 'object' || !('income' in o)) throw new Error('formato');
-      S = merge(L.defaults(), o); save(); ui.msg = 'Importado.'; render();
-    } catch (e) { ui.msg = 'Ese texto no parece un respaldo válido.'; render(); }
+      S = merge(L.defaults(), o); save(); tab = 'hoy'; ui.msg = '';
+      ui.toast = { text: 'Plan cargado', rain: '🌅' }; render(); window.scrollTo(0, 0);
+    } catch (e) { ui.msg = 'No pude leer ese código. Cópialo completo y vuelve a intentar.'; render(); }
   }
   document.addEventListener('input', function (ev) {
     if (ev.target.id === 'q-amt') ui.amt = ev.target.value;
@@ -600,6 +623,23 @@
     setPath(S, p, val); save(); render();
   });
 
+
+  // ---------- pantalla de inicio ----------
+  function startScreen() {
+    var el = document.getElementById('start');
+    if (!el) return;
+    var li = L.levelInfo(L.xpTotal(S)), st = L.streak(S, new Date());
+    el.innerHTML = '<div class="art">' + scene(1, false).replace('id="fillg"', '') + '</div>' +
+      '<div><div class="logo">Sunset<span>Fund</span></div><div class="tag2">Ahorra de verdad. Sube de nivel.</div>' +
+      '<div class="player"><span class="lv">' + li.level + '</span><span>' + LEVELS[Math.min(LEVELS.length - 1, li.level - 1)] + (st > 0 ? ' · 🔥 ' + st : '') + '</span></div></div>' +
+      '<div><div class="press">Toca para empezar</div></div>';
+    function go2() { el.classList.add('out'); setTimeout(function () { el.style.display = 'none'; }, 650); }
+    el.addEventListener('click', go2);
+    el.addEventListener('keydown', function (e) { if (e.key === 'Enter' || e.key === ' ') go2(); });
+  }
+
   if ('serviceWorker' in navigator) window.addEventListener('load', function () { navigator.serviceWorker.register('sw.js').catch(function () {}); });
+  if (location.hash.indexOf('#plan=') === 0) { try { var hp = decodePlan(location.hash); if (hp && 'income' in hp) { S = merge(L.defaults(), hp); save(); } } catch (e) {} history.replaceState(null, '', location.pathname); }
   render();
+  startScreen();
 })();
