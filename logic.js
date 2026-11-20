@@ -40,6 +40,7 @@
       car: { name: 'Auto', price: 0, downPct: 20, apr: 0.14, months: 72 },
       wishSaved: 0,
       incomes: [],
+      incomeSources: [],
       noSpend: [],
       deposits: [],
       cash: { amount: 0, asOf: '' },
@@ -124,7 +125,7 @@
   function projection(s, now, months) {
     months = months || 36;
     const start = firstPlanMonth(now, s.payday || 15);
-    const income = (+s.income || 0) + (+s.extra || 0);
+    const income = incomeTotal(s) + (+s.extra || 0);
     const u = s.usdCard || {};
     const fx = +u.fx || 18;
     const payUSD = (+u.monthlyMXN || 0) / fx;
@@ -255,6 +256,22 @@
   }
 
   // Pagos próximos (Nu, tarjeta EUA...) contra el dinero disponible y el siguiente ingreso.
+  function incomeTotal(s) {
+    const src = s.incomeSources || [];
+    return src.length ? src.reduce((t, x) => t + (+x.amount || 0), 0) : (+s.income || 0);
+  }
+  // Próximos ingresos con fecha (de los ingresos fijos), después de hoy
+  function upcomingIncomes(s, now, months) {
+    const today = startOfDay(now), base = mIdx(today), out = [];
+    (s.incomeSources || []).forEach(x => {
+      if (!((+x.amount) > 0) || !((+x.day) > 0)) return;
+      for (let k = 0; k < (months || 4); k++) {
+        const d = paydayDate(base + k, +x.day);
+        if (d > today) out.push({ name: x.name, amount: +x.amount, date: d });
+      }
+    });
+    return out.sort((a, b) => a.date - b.date);
+  }
   function countdown(s, now) {
     const today = startOfDay(now);
     const fx = +((s.usdCard || {}).fx) || 18;
@@ -264,16 +281,17 @@
       return { id: u.id, name: u.name, date, pending, days: Math.round((date - today) / 86400000) };
     }).filter(u => u.pending > 0.5).sort((a, b) => a.date - b.date);
     const ni = s.nextIncome && s.nextIncome.date ? { date: parseDate(s.nextIncome.date), amount: +s.nextIncome.amount || 0 } : null;
+    const incs = (s.incomeSources || []).length ? upcomingIncomes(s, now, 4) : [];
     let need = 0;
     const cash = +((s.cash || {}).amount) || 0;
     items.forEach(it => {
       need += it.pending;
-      const incomeBefore = ni && ni.date <= it.date ? ni.amount : 0;
+      const incomeBefore = incs.length ? incs.filter(x => x.date <= it.date).reduce((t, x) => t + x.amount, 0) : (ni && ni.date <= it.date ? ni.amount : 0);
       it.cumNeed = need;
       it.gap = Math.max(0, need - cash - incomeBefore);
       it.incomeBefore = incomeBefore;
     });
-    return { items, cash, nextIncome: ni, fx };
+    return { items, cash, nextIncome: ni, incomes: incs, fx };
   }
 
   function retirementFV(r) {
@@ -326,7 +344,7 @@
   }
 
   return {
-    streak, bestStreak, xpTotal, levelInfo, savedReal, dayKey, countdown, retirementFV, emergencyTarget, WEEKS, ENV_KEYS, ENV_NAMES, defaults, mIdx, parseYM, parseDate, paydayDate, labelMonth, firstPlanMonth,
+    incomeTotal, upcomingIncomes, streak, bestStreak, xpTotal, levelInfo, savedReal, dayKey, countdown, retirementFV, emergencyTarget, WEEKS, ENV_KEYS, ENV_NAMES, defaults, mIdx, parseYM, parseDate, paydayDate, labelMonth, firstPlanMonth,
     paydaysCount, cycle, tripsTotal, fixedTotal, installmentsFor, pmt, usdPayoff, projection, envelopes,
     etaQueue, spentByEnv, carEval, levers
   };

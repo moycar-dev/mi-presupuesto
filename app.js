@@ -224,14 +224,14 @@
   function viewCountdown() {
     var cd = L.countdown(S, new Date());
     var out = '<div class="card"><h2>Próximos pagos</h2>';
-    out += '<div class="grid2"><label>Dinero disponible hoy<input type="number" inputmode="decimal" step="any" data-f="cash.amount" data-t="number" value="' + esc(S.cash.amount) + '"></label>' +
-      '<label>Próximo ingreso (monto)<input type="number" inputmode="decimal" step="any" data-f="nextIncome.amount" data-t="number" value="' + esc(S.nextIncome.amount) + '"></label></div>' +
-      '<label>Fecha del próximo ingreso<input type="date" data-f="nextIncome.date" data-t="date" value="' + esc(S.nextIncome.date) + '"></label>';
+    out += '<label>Dinero disponible hoy<input type="number" inputmode="decimal" step="any" data-f="cash.amount" data-t="number" value="' + esc(S.cash.amount) + '"></label>';
+    if (cd.incomes.length) out += '<h3>Te van a pagar</h3>' + cd.incomes.slice(0, 4).map(function (x) { return '<div class="row"><span>' + fdate(x.date) + ' · ' + esc(x.name) + '</span><b class="ok">+' + mx(x.amount) + '</b></div>'; }).join('');
+    else out += '<label>Próximo ingreso (monto)<input type="number" inputmode="decimal" step="any" data-f="nextIncome.amount" data-t="number" value="' + esc(S.nextIncome.amount) + '"></label><label>Fecha del próximo ingreso<input type="date" data-f="nextIncome.date" data-t="date" value="' + esc(S.nextIncome.date) + '"></label>';
     if (!cd.items.length) return out + '<p class="mute">No tienes pagos pendientes capturados. Agrégalos en Ajustes.</p></div>';
     out += cd.items.map(function (it) {
       var cls = it.gap > 0 ? 'bad' : 'ok';
       return '<div class="item"><div class="row"><span><b>' + esc(it.name) + '</b><br><span class="mute small">' + fdate(it.date) + ' · ' + (it.days < 0 ? 'vencido' : it.days === 0 ? 'hoy' : 'en ' + it.days + ' días') + '</span></span><b>' + mx(it.pending) + '</b></div>' +
-        '<div class="' + cls + ' small">' + (it.gap > 0 ? 'Con lo que tienes y lo que llega antes de esa fecha, faltan ' + mx(it.gap) + ' (sumando los pagos anteriores).' : 'Cubierto con tu dinero disponible.') + '</div>' +
+        '<div class="' + cls + ' small">' + (it.gap > 0 ? 'Con lo que tienes y lo que llega antes de esa fecha, faltan ' + mx(it.gap) + ' (sumando los pagos anteriores).' : (it.cumNeed > cd.cash ? 'Cubierto con tu dinero y los pagos que te llegan antes de esa fecha.' : 'Cubierto con tu dinero disponible.')) + '</div>' +
         '<div class="grid2"><input type="number" inputmode="decimal" step="any" placeholder="Abonar $" id="pay-' + it.id + '"><button class="sec" data-a="pay" data-v="' + it.id + '">Registrar abono</button></div></div>';
     }).join('');
     return out + '<p class="mute small">Al registrar un abono, se descuenta también de tu dinero disponible.</p></div>';
@@ -362,7 +362,8 @@
 
   function viewAjustes() {
     var out = '<h1>Ajustes</h1>';
-    out += '<div class="card"><h2>Ingresos</h2><div class="grid2">' + inp('income', 'Ingreso mensual $') + inp('extra', 'Ingreso extra mensual $') + inp('payday', 'Día de cobro') + '</div><p class="mute small">Tu mínimo sin culpa y tu ahorro los calcula la app sola: 10% de tu ingreso para cada uno. No tienes que definirlos.</p></div>';
+    out += listEditor('Ingresos fijos (monto y día del mes)', 'incomeSources', [['name', 'Nombre', 'text'], ['amount', 'Monto $'], ['day', 'Día del mes']], { name: '', amount: 0, day: 1 });
+    out += '<div class="card"><h2>Ingreso total</h2><div class="big">' + mx(L.incomeTotal(S)) + '</div><p class="mute small">Es la suma de tus ingresos fijos. Tu mínimo sin culpa y tu ahorro los calcula la app sola: 10% de tu ingreso para cada uno.</p><div class="grid2">' + inp('extra', 'Ingreso extra mensual $') + inp('payday', 'Día de corte del plan') + '</div></div>';
     out += listEditor('Gastos fijos', 'fixed', [['name', 'Nombre', 'text'], ['amount', 'Monto mensual $'], ['startMonth', 'Desde (opcional)', 'month'], ['endMonth', 'Hasta (opcional)', 'month']], { name: '', amount: 0 });
     out += '<div class="card"><h2>Viajes</h2><div class="grid2">' + inp('trips.count', 'Viajes al mes') + inp('trips.tolls', 'Casetas por viaje') + inp('trips.gas', 'Gasolina por viaje') + inp('trips.food', 'Comida por viaje') + '</div></div>';
     out += listEditor('Mensualidades de tarjeta (MSI, planes)', 'installments', [['name', 'Nombre', 'text'], ['monthly', 'Monto $'], ['startMonth', 'Desde', 'month'], ['endMonth', 'Hasta', 'month']], { name: '', monthly: 0 });
@@ -379,7 +380,7 @@
       '<label>Importar (pega el respaldo aquí)<textarea id="imp" rows="4"></textarea></label><button class="sec full" data-a="import">Importar</button>' +
       '<label>O elige un archivo<input type="file" id="impfile" accept=".json,application/json"></label>' +
       (ui.msg ? '<div class="note good">' + esc(ui.msg) + '</div>' : '') +
-      '<button class="sec full" data-a="refresh">Actualizar la app (versión 8)</button>' +
+      '<button class="sec full" data-a="refresh">Actualizar la app (versión 9)</button>' +
       '<button class="del full" data-a="reset">Borrar todos mis datos</button></div>';
     return out;
   }
@@ -405,6 +406,7 @@
     return h;
   }
   function render() {
+    if (S.incomeSources && S.incomeSources.length) S.income = L.incomeTotal(S);
     var app = document.getElementById('app');
     var y = window.scrollY;
     var views = { hoy: viewHoy, gastos: viewGastos, camino: viewCamino, plan: viewPlan, metas: viewMetas, ajustes: viewAjustes };
