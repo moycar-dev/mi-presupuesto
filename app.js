@@ -21,9 +21,9 @@
   ];
   var METODOS = [{ k: 'efectivo', n: 'Efectivo', cash: 1 }, { k: 'debito', n: 'Débito', cash: 1 }, { k: 'nu', n: 'Crédito Nu', cash: 0 }, { k: 'discover', n: 'Discover', cash: 0 }];
   var ITIPOS = [{ k: 'sueldo', n: 'Sueldo' }, { k: 'extra', n: 'Extra' }, { k: 'apoyo', n: 'Apoyo' }, { k: 'venta', n: 'Venta' }, { k: 'otro', n: 'Otro' }];
-  var DESTINOS = [{ k: 'efectivo', n: 'Efectivo', cash: 1 }, { k: 'nu', n: 'Nu', cash: 1 }, { k: 'bbva', n: 'BBVA', cash: 1 }, { k: 'inversion', n: 'Inversión', cash: 0 }];
+  var DESTINOS = [{ k: 'efectivo', n: 'Efectivo', cash: 1 }, { k: 'nu', n: 'Nu', cash: 1 }, { k: 'bbva', n: 'BBVA', cash: 1 }, { k: 'inversion', n: 'Inversión', cash: 0 }, { k: 'pagonu', n: 'Pagar tarjeta Nu', cash: 1 }];
   var MESES = ['enero', 'febrero', 'marzo', 'abril', 'mayo', 'junio', 'julio', 'agosto', 'septiembre', 'octubre', 'noviembre', 'diciembre'];
-  var EMO = { efectivo: '💵', debito: '🏧', nu: '💜', discover: '🧡', bbva: '🔷', inversion: '📈', nu2: '💜', sueldo: '💼', extra: '⚡', apoyo: '🤝', venta: '🏷️' };
+  var EMO = { efectivo: '💵', debito: '🏧', nu: '💜', discover: '🧡', bbva: '🔷', inversion: '📈', pagonu: '💜', nu2: '💜', sueldo: '💼', extra: '⚡', apoyo: '🤝', venta: '🏷️' };
   function tiles(list, cur, act, emoOf) {
     return '<div class="tiles' + (list.length === 4 ? ' t2' : '') + '">' + list.map(function (t) { return '<button class="tile' + (cur === t.k ? ' on' : '') + '" data-a="' + act + '" data-v="' + t.k + '"><span class="em">' + (emoOf ? emoOf(t) : t.e) + '</span>' + t.n + '</button>'; }).join('') + '</div>';
   }
@@ -381,7 +381,7 @@
       '<label>Importar (pega el respaldo aquí)<textarea id="imp" rows="4"></textarea></label><button class="sec full" data-a="import">Importar</button>' +
       '<label>O elige un archivo<input type="file" id="impfile" accept=".json,.txt,application/json,text/plain"></label>' +
       (ui.msg ? '<div class="note good">' + esc(ui.msg) + '</div>' : '') +
-      '<button class="sec full" data-a="refresh">Actualizar la app (versión 10)</button>' +
+      '<button class="sec full" data-a="refresh">Actualizar la app (versión 11)</button>' +
       '<button class="del full" data-a="reset">Borrar todos mis datos</button></div>';
     return out;
   }
@@ -457,7 +457,7 @@
       '<label>¿Dónde lo metiste?</label>' + tiles(DESTINOS, ui.idest, 'idest', function (d) { return EMO[d.k]; }) +
       '<label>Fecha<input id="i-date" type="date" max="' + L.dayKey(n) + '" value="' + esc(ui.idate || L.dayKey(n)) + '"></label>' +
       '<label>Nota (opcional)<input id="i-note" type="text" placeholder="Detalle" value="' + esc(ui.inote) + '"></label>' +
-      '<div class="mute small">' + (pick(DESTINOS, ui.idest).cash ? 'Suma a tu dinero disponible.' : 'No suma a tu dinero disponible: queda como ahorro o inversión.') + ' No cambia tu ingreso base del plan.</div>' +
+      '<div class="mute small">' + (ui.idest === 'pagonu' ? 'Queda apartado para tu pago de la tarjeta Nu: baja lo que debes en Próximos pagos y no suma a tu dinero disponible.' : pick(DESTINOS, ui.idest).cash ? 'Suma a tu dinero disponible.' : 'No suma a tu dinero disponible: queda como ahorro o inversión.') + ' No cambia tu ingreso base del plan.</div>' +
       '<button class="full" data-a="addinc">Guardar ingreso</button>' + (ui.msg ? '<div class="mute">' + esc(ui.msg) + '</div>' : '') + '</div>';
 
     if (rows.length) {
@@ -481,7 +481,7 @@
     return out;
   }
 
-  function addDep(kind, amount, name) { S.deposits.push({ id: uid(), date: iso(new Date()), amount: amount, kind: kind, name: name || '' }); }
+  function addDep(kind, amount, name) { var d = { id: uid(), date: iso(new Date()), amount: amount, kind: kind, name: name || '' }; S.deposits.push(d); return d; }
 
   // ---------- eventos ----------
   document.addEventListener('click', function (ev) {
@@ -501,15 +501,30 @@
       var ia = num('i-amt');
       if (!(ia > 0)) { ui.msg = 'Escribe un monto.'; return render(); }
       var idt = document.getElementById('i-date').value || L.dayKey(new Date()); if (idt > L.dayKey(new Date())) idt = L.dayKey(new Date());
-      var dd = pick(DESTINOS, ui.idest), delta = dd.cash ? ia : 0;
+      var dd = pick(DESTINOS, ui.idest), inote = document.getElementById('i-note').value.trim();
       if (!S.incomes) S.incomes = []; if (!S.cash) S.cash = { amount: 0 };
-      S.incomes.push({ id: uid(), date: idt, amount: ia, tipo: ui.itipo, dest: ui.idest, note: document.getElementById('i-note').value.trim(), cashDelta: delta });
+      if (ui.idest === 'pagonu') {
+        var nuIt = (S.upcoming || []).filter(function (u) { return /nu/i.test(u.name) && (+u.amount || 0) - (+u.paid || 0) > 0.5; })[0];
+        if (!nuIt) { ui.msg = 'No encontré un pago pendiente de la tarjeta Nu. Agrégalo en Ajustes → Pagos próximos.'; return render(); }
+        var apply = Math.min(ia, (+nuIt.amount || 0) - (+nuIt.paid || 0));
+        return act(function () {
+          var dep = addDep('deuda', apply, nuIt.name);
+          nuIt.paid = (+nuIt.paid || 0) + apply;
+          var left = ia - apply;
+          S.cash.amount = (+S.cash.amount || 0) + left;
+          S.incomes.push({ id: uid(), date: idt, amount: ia, tipo: ui.itipo, dest: 'pagonu', note: inote, cashDelta: left, abono: { upId: nuIt.id, amount: apply, depId: dep.id } });
+          ui.iamt = ''; ui.inote = ''; ui.idate = ''; ui.msg = 'Apartados ' + mx(apply) + ' para la tarjeta Nu.';
+        }, true);
+      }
+      var delta = dd.cash ? ia : 0;
+      S.incomes.push({ id: uid(), date: idt, amount: ia, tipo: ui.itipo, dest: ui.idest, note: inote, cashDelta: delta });
       S.cash.amount = (+S.cash.amount || 0) + delta;
       ui.iamt = ''; ui.inote = ''; ui.idate = ''; ui.msg = ''; save(); ui.toast = { text: '¡Entró lana! +' + mx(ia), rain: dd.cash ? '💰' : '📈' }; return render();
     }
     if (a === 'delinc') {
       var di = (S.incomes || []).filter(function (x) { return x.id === v; })[0];
-      if (di) { if (!S.cash) S.cash = { amount: 0 }; S.cash.amount = (+S.cash.amount || 0) - (+di.cashDelta || 0); S.incomes = S.incomes.filter(function (x) { return x.id !== v; }); save(); }
+      if (di) { if (!S.cash) S.cash = { amount: 0 }; S.cash.amount = (+S.cash.amount || 0) - (+di.cashDelta || 0);
+        if (di.abono) { var up = (S.upcoming || []).filter(function (u) { return u.id === di.abono.upId; })[0]; if (up) up.paid = Math.max(0, (+up.paid || 0) - di.abono.amount); S.deposits = (S.deposits || []).filter(function (d) { return d.id !== di.abono.depId; }); } S.incomes = S.incomes.filter(function (x) { return x.id !== v; }); save(); }
       return render();
     }
     if (a === 'nospend') return act(function () { var k = L.dayKey(new Date()); if (S.noSpend.indexOf(k) < 0) S.noSpend.push(k); });
