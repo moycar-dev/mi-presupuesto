@@ -34,7 +34,7 @@
     var envName = L.ENV_NAMES[e.env] ? L.ENV_NAMES[e.env].split(' ')[0] : 'Otro';
     return { k: 'env-' + e.env, e: '📦', n: envName, env: e.env };
   }
-  var ui = { tipo: 'comida', met: 'efectivo', date: '', itipo: 'sueldo', idest: 'efectivo', iamt: '', inote: '', idate: '', gm: 0, more: false, gf: 'todo', msg: '', amt: '', note: '', prevFill: 0, toast: null, levelup: 0 };
+  var ui = { tipo: 'comida', met: 'efectivo', date: '', itipo: 'sueldo', idest: 'efectivo', iamt: '', inote: '', idate: '', gm: 0, more: false, gf: 'todo', msg: '', amt: '', note: '', prevFill: 0, open: {}, toast: null, levelup: 0 };
 
   // ---------- estado ----------
   function merge(base, saved) {
@@ -372,7 +372,7 @@
       '<button class="full" data-a="download">Descargar respaldo</button>' +
       '<label>Cargar un respaldo o plan<input type="file" id="impfile" accept=".json,.txt,application/json,text/plain"></label>' +
       (ui.msg ? '<div class="note good">' + esc(ui.msg) + '</div>' : '') +
-      '<button class="sec full" data-a="refresh">Actualizar la app (versión 12)</button>' +
+      '<button class="sec full" data-a="refresh">Actualizar la app (versión 13)</button>' +
       '<button class="del full" data-a="reset">Borrar todos mis datos</button></div>';
     return out;
   }
@@ -397,12 +397,30 @@
     }
     return h;
   }
+  var OPEN_DEF = ['Registrar gasto', 'Próximos pagos', 'Movimientos', 'Tu dinero sin culpa'];
+  function foldCards(app) {
+    var cards = app.querySelectorAll('.card');
+    Array.prototype.forEach.call(cards, function (c) {
+      var h = c.firstElementChild;
+      if (!h || h.tagName !== 'H2' || c.closest('details')) return;
+      var title = h.textContent, key = tab + '|' + title.split(':')[0];
+      var d = document.createElement('details'); d.className = 'card fold'; d.dataset.k = key;
+      var open = key in ui.open ? ui.open[key] : (tab !== 'ajustes' && OPEN_DEF.indexOf(title.split(':')[0]) >= 0);
+      if (open) d.open = true;
+      var sm = document.createElement('summary'); sm.textContent = title;
+      c.removeChild(h); c.parentNode.insertBefore(d, c); d.appendChild(sm);
+      while (c.firstChild) d.appendChild(c.firstChild);
+      c.parentNode.removeChild(c);
+    });
+  }
+  document.addEventListener('toggle', function (ev) { var k = ev.target.dataset && ev.target.dataset.k; if (k) ui.open[k] = ev.target.open; }, true);
   function render() {
     if (S.incomeSources && S.incomeSources.length) S.income = L.incomeTotal(S);
     var app = document.getElementById('app');
     var y = window.scrollY;
     var views = { hoy: viewHoy, gastos: viewGastos, camino: viewCamino, plan: viewPlan, metas: viewMetas, ajustes: viewAjustes };
     app.innerHTML = views[tab]();
+    foldCards(app);
     document.getElementById('tabs').innerHTML = TABS.map(function (t) { return '<button class="' + (tab === t[0] ? 'on' : '') + '" data-a="goto" data-v="' + t[0] + '">' + ICON[t[0]] + t[1] + '</button>'; }).join('');
     document.getElementById('fx').innerHTML = fx();
     ui.toast = null;

@@ -160,3 +160,10 @@ td:first-child,th:first-child{text-align:left}
 .tiles.t2{grid-template-columns:1fr 1fr}
 .quest{flex-wrap:wrap}.quest>div:nth-child(2){flex:1 1 170px;min-width:0}.quest>button{flex:1 1 100%}
 #start .art{-webkit-mask-image:linear-gradient(180deg,transparent 0,#000 14%,#000 80%,transparent 100%);mask-image:linear-gradient(180deg,transparent 0,#000 14%,#000 80%,transparent 100%)}
+
+details.fold{padding:0 16px 14px}
+details.fold>summary{list-style:none;cursor:pointer;font-size:1.15rem;font-weight:800;padding:16px 0;margin:0;display:flex;justify-content:space-between;align-items:center;min-height:56px}
+details.fold>summary::-webkit-details-marker{display:none}
+details.fold>summary::after{content:"+";font-size:1.6rem;line-height:1;color:var(--rosa);font-weight:700}
+details.fold[open]>summary::after{content:"–"}
+details.fold:not([open]){padding-bottom:0}
