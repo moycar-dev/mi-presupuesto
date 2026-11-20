@@ -379,6 +379,7 @@
       '<label>Importar (pega el respaldo aquí)<textarea id="imp" rows="4"></textarea></label><button class="sec full" data-a="import">Importar</button>' +
       '<label>O elige un archivo<input type="file" id="impfile" accept=".json,application/json"></label>' +
       (ui.msg ? '<div class="note good">' + esc(ui.msg) + '</div>' : '') +
+      '<button class="sec full" data-a="refresh">Actualizar la app (versión 7)</button>' +
       '<button class="del full" data-a="reset">Borrar todos mis datos</button></div>';
     return out;
   }
@@ -570,6 +571,14 @@
       var blob = new Blob([JSON.stringify(S, null, 1)], { type: 'application/json' });
       var link = document.createElement('a'); link.href = URL.createObjectURL(blob); link.download = 'respaldo-sunset-fund-' + iso(new Date()) + '.json';
       document.body.appendChild(link); link.click(); link.remove(); return;
+    }
+    if (a === 'refresh') {
+      var done = function () { location.reload(); };
+      var p = [];
+      if (window.caches) p.push(caches.keys().then(function (ks) { return Promise.all(ks.map(function (k) { return caches.delete(k); })); }));
+      if (navigator.serviceWorker) p.push(navigator.serviceWorker.getRegistrations().then(function (rs) { return Promise.all(rs.map(function (r) { return r.unregister(); })); }));
+      Promise.all(p).then(done, done);
+      return;
     }
     if (a === 'pastecode') {
       if (navigator.clipboard && navigator.clipboard.readText) navigator.clipboard.readText().then(function (t) { doImport(t); }, function () { ui.msg = 'Tu navegador no dejó leer el portapapeles. Pega el código en el cuadro de abajo.'; render(); });
