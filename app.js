@@ -254,7 +254,7 @@
 
     var lev = L.levers(S, r);
     if (lev.gap > 0) {
-      out += '<div class="card"><h2>Para llegar a tu mínimo sin culpa</h2><p class="mute">Te faltan ' + mx(lev.gap) + ' al mes para llegar a tu mínimo de ' + mx(r.floor) + ' (' + mx(S.funFloorWeekly) + '/semana). Opciones, tú eliges:</p>';
+      out += '<div class="card"><h2>Para llegar a tu mínimo sin culpa</h2><p class="mute">Te faltan ' + mx(lev.gap) + ' al mes para llegar a tu mínimo recomendado de ' + mx(r.floor) + ' (' + mx(r.floor / L.WEEKS) + ' por semana). Opciones, tú eliges:</p>';
       lev.list.forEach(function (l) {
         if (l.type === 'income') out += '<div class="item">Ingreso extra de <b>' + mx(l.amount) + '</b> al mes.</div>';
         if (l.type === 'usd') out += '<div class="item">Bajar el pago a la tarjeta EUA en ' + mx(l.cut) + ' (a ' + mx(l.newPay) + '/mes). ' + (l.monthsAfter && l.monthsNow ? 'Pasarías de ~' + l.monthsNow + ' a ~' + l.monthsAfter + ' meses' + (l.hasApr ? ', con ~' + usd(l.interestExtraUSD) + ' más de intereses.' : '.') : 'Revisa que el pago cubra los intereses.') + '</div>';
@@ -362,7 +362,7 @@
 
   function viewAjustes() {
     var out = '<h1>Ajustes</h1>';
-    out += '<div class="card"><h2>Ingresos</h2><div class="grid2">' + inp('income', 'Ingreso mensual $') + inp('extra', 'Ingreso extra mensual $') + inp('payday', 'Día de cobro') + inp('savingPct', 'Ahorro % del ingreso') + '</div>' + inp('funFloorWeekly', 'Mínimo sin culpa por semana $') + '</div>';
+    out += '<div class="card"><h2>Ingresos</h2><div class="grid2">' + inp('income', 'Ingreso mensual $') + inp('extra', 'Ingreso extra mensual $') + inp('payday', 'Día de cobro') + '</div><p class="mute small">Tu mínimo sin culpa y tu ahorro los calcula la app sola: 10% de tu ingreso para cada uno. No tienes que definirlos.</p></div>';
     out += listEditor('Gastos fijos', 'fixed', [['name', 'Nombre', 'text'], ['amount', 'Monto mensual $'], ['startMonth', 'Desde (opcional)', 'month'], ['endMonth', 'Hasta (opcional)', 'month']], { name: '', amount: 0 });
     out += '<div class="card"><h2>Viajes</h2><div class="grid2">' + inp('trips.count', 'Viajes al mes') + inp('trips.tolls', 'Casetas por viaje') + inp('trips.gas', 'Gasolina por viaje') + inp('trips.food', 'Comida por viaje') + '</div></div>';
     out += listEditor('Mensualidades de tarjeta (MSI, planes)', 'installments', [['name', 'Nombre', 'text'], ['monthly', 'Monto $'], ['startMonth', 'Desde', 'month'], ['endMonth', 'Hasta', 'month']], { name: '', monthly: 0 });
@@ -379,7 +379,7 @@
       '<label>Importar (pega el respaldo aquí)<textarea id="imp" rows="4"></textarea></label><button class="sec full" data-a="import">Importar</button>' +
       '<label>O elige un archivo<input type="file" id="impfile" accept=".json,application/json"></label>' +
       (ui.msg ? '<div class="note good">' + esc(ui.msg) + '</div>' : '') +
-      '<button class="sec full" data-a="refresh">Actualizar la app (versión 7)</button>' +
+      '<button class="sec full" data-a="refresh">Actualizar la app (versión 8)</button>' +
       '<button class="del full" data-a="reset">Borrar todos mis datos</button></div>';
     return out;
   }

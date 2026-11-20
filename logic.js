@@ -20,8 +20,8 @@
       income: 0,
       extra: 0,
       payday: 15,
-      funFloorWeekly: 600,
-      savingPct: 10,
+      funFloorWeekly: 0,
+      savingPct: 0,
       fixed: [],
       trips: { count: 0, tolls: 0, gas: 0, food: 0 },
       installments: [],
@@ -130,8 +130,9 @@
     const payUSD = (+u.monthlyMXN || 0) / fx;
     const apr = u.apr || 0;
     let bal = +u.balanceUSD || 0;
-    const floor = (+s.funFloorWeekly || 0) * WEEKS;
-    const saveTarget = (+s.savingPct || 0) / 100 * income;
+    // Automático: 10% del ingreso para disfrutar sin culpa y 10% para ahorrar (si el usuario no fijó otro valor)
+    const floor = (+s.funFloorWeekly || 0) > 0 ? (+s.funFloorWeekly) * WEEKS : income * 0.10;
+    const saveTarget = (+s.savingPct || 0) > 0 ? (+s.savingPct) / 100 * income : income * 0.10;
     const dated = (s.goals || []).filter(g => g.deadline);
     const info = dated.map(g => {
       const dl = parseDate(g.deadline);
