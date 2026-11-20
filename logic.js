@@ -39,6 +39,7 @@
       },
       car: { name: 'Auto', price: 0, downPct: 20, apr: 0.14, months: 72 },
       wishSaved: 0,
+      incomes: [],
       noSpend: [],
       deposits: [],
       cash: { amount: 0, asOf: '' },

@@ -7,12 +7,34 @@
     camino: '<svg viewBox="0 0 24 24"><circle cx="6" cy="18" r="3" fill="currentColor"/><circle cx="18" cy="6" r="3" fill="currentColor"/><path d="M6 15c0-6 12 0 12-6" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-dasharray="0.5 4.5"/></svg>',
     plan: '<svg viewBox="0 0 24 24"><rect x="3" y="5" width="18" height="16" rx="3.5" fill="currentColor"/><rect x="7" y="2" width="3" height="6" rx="1.5" fill="currentColor"/><rect x="14" y="2" width="3" height="6" rx="1.5" fill="currentColor"/><path d="M3 11h18" stroke="#fff" stroke-width="2"/></svg>',
     metas: '<svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="9.5" fill="none" stroke="currentColor" stroke-width="3"/><circle cx="12" cy="12" r="4.5" fill="currentColor"/></svg>',
+    gastos: '<svg viewBox="0 0 24 24"><path d="M6 3h12v18l-3-2-3 2-3-2-3 2z" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linejoin="round"/><path d="M9 8h6M9 12h6" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"/></svg>',
     ajustes: '<svg viewBox="0 0 24 24"><path d="M4 7h10M18 7h2M4 17h2M10 17h10M4 12h16" stroke="currentColor" stroke-width="2.6" stroke-linecap="round"/><circle cx="16" cy="7" r="2.6" fill="currentColor"/><circle cx="8" cy="17" r="2.6" fill="currentColor"/></svg>'
   };
-  var TABS = [['hoy', 'Hoy'], ['camino', 'Camino'], ['plan', 'Plan'], ['metas', 'Metas'], ['ajustes', 'Ajustes']];
+  var TABS = [['hoy', 'Hoy'], ['gastos', 'Gastos'], ['camino', 'Camino'], ['plan', 'Plan'], ['metas', 'Metas'], ['ajustes', 'Ajustes']];
   var LEVELS = ['Semilla', 'Centavo', 'Alcancía', 'Peso firme', 'Ahorrador', 'Ahorrador pro', 'Maestro del colchón', 'Inversor en marcha', 'Constructor de futuro', 'Leyenda'];
   var tab = 'hoy';
-  var ui = { cat: 'salidas', msg: '', amt: '', note: '', prevFill: 0, toast: null, levelup: 0 };
+  var TIPOS = [
+    { c: '#ffb15a', k: 'comida', e: '🍔', n: 'Comida fuera', env: 'salidas' }, { c: '#ff3d8b', k: 'salidas', e: '🎉', n: 'Salidas', env: 'salidas' },
+    { c: '#27e3d0', k: 'transporte', e: '🚗', n: 'Transporte', env: 'otro' }, { c: '#7cf29a', k: 'super', e: '🛒', n: 'Súper', env: 'otro' },
+    { c: '#b78bff', k: 'eventos', e: '🎟️', n: 'Eventos', env: 'eventos' }, { c: '#6ab7ff', k: 'trabajo', e: '💼', n: 'Trabajo', env: 'trabajo' },
+    { c: '#ffc247', k: 'gustos', e: '🎮', n: 'Gustos', env: 'gustos' }, { c: '#ff6b6b', k: 'salud', e: '💊', n: 'Salud', env: 'otro' }, { c: '#a99bd6', k: 'otro', e: '📦', n: 'Otro', env: 'otro' }
+  ];
+  var METODOS = [{ k: 'efectivo', n: 'Efectivo', cash: 1 }, { k: 'debito', n: 'Débito', cash: 1 }, { k: 'nu', n: 'Crédito Nu', cash: 0 }, { k: 'discover', n: 'Discover', cash: 0 }];
+  var ITIPOS = [{ k: 'sueldo', n: 'Sueldo' }, { k: 'extra', n: 'Extra' }, { k: 'apoyo', n: 'Apoyo' }, { k: 'venta', n: 'Venta' }, { k: 'otro', n: 'Otro' }];
+  var DESTINOS = [{ k: 'efectivo', n: 'Efectivo', cash: 1 }, { k: 'nu', n: 'Nu', cash: 1 }, { k: 'bbva', n: 'BBVA', cash: 1 }, { k: 'inversion', n: 'Inversión', cash: 0 }];
+  var MESES = ['enero', 'febrero', 'marzo', 'abril', 'mayo', 'junio', 'julio', 'agosto', 'septiembre', 'octubre', 'noviembre', 'diciembre'];
+  var EMO = { efectivo: '💵', debito: '🏧', nu: '💜', discover: '🧡', bbva: '🔷', inversion: '📈', nu2: '💜', sueldo: '💼', extra: '⚡', apoyo: '🤝', venta: '🏷️' };
+  function tiles(list, cur, act, emoOf) {
+    return '<div class="tiles">' + list.map(function (t) { return '<button class="tile' + (cur === t.k ? ' on' : '') + '" data-a="' + act + '" data-v="' + t.k + '"><span class="em">' + (emoOf ? emoOf(t) : t.e) + '</span>' + t.n + '</button>'; }).join('') + '</div>';
+  }
+  function pick(list, k) { for (var i = 0; i < list.length; i++) if (list[i].k === k) return list[i]; return null; }
+  function tipoOf(e) {
+    var t = pick(TIPOS, e.tipo);
+    if (t) return t;
+    var envName = L.ENV_NAMES[e.env] ? L.ENV_NAMES[e.env].split(' ')[0] : 'Otro';
+    return { k: 'env-' + e.env, e: '📦', n: envName, env: e.env };
+  }
+  var ui = { tipo: 'comida', met: 'efectivo', date: '', itipo: 'sueldo', idest: 'efectivo', iamt: '', inote: '', idate: '', gm: 0, gf: 'todo', msg: '', amt: '', note: '', prevFill: 0, toast: null, levelup: 0 };
 
   // ---------- estado ----------
   function merge(base, saved) {
@@ -122,17 +144,18 @@
     out += '<div class="quest' + (has ? ' done' : '') + '"><div class="ic">' + (has ? '✅' : '🎯') + '</div><div style="flex:1"><h2>' + (has ? 'Reto de hoy cumplido' : 'Reto de hoy') + '</h2><div class="mute small">' + (has ? days + ' de 7 días con registro esta semana.' : 'Registra lo que gastes, o confirma que hoy no gastaste.') + '</div></div>' + (has ? '' : '<button class="gold" data-a="nospend">Hoy no gasté</button>') + '</div>';
 
     out += '<div class="card"><h2>Registrar gasto</h2><label>Monto<input id="q-amt" type="number" inputmode="decimal" step="any" placeholder="0" value="' + esc(ui.amt) + '"></label>' +
-      '<div class="chips">' + ['salidas', 'eventos', 'trabajo', 'gustos', 'otro'].map(function (k) {
-        return '<button class="chip' + (ui.cat === k ? ' on' : '') + '" data-a="cat" data-v="' + k + '">' + L.ENV_NAMES[k].split(' ')[0] + '</button>';
-      }).join('') + '</div>' +
-      '<label>Nota (opcional)<input id="q-note" type="text" placeholder="¿En qué fue?" value="' + esc(ui.note) + '"></label>' +
+      '<label>¿En qué fue?</label>' + tiles(TIPOS, ui.tipo, 'tipo') +
+      '<label>Pagado con</label>' + tiles(METODOS, ui.met, 'met', function (m) { return EMO[m.k]; }) +
+      '<label>Fecha<input id="q-date" type="date" max="' + todayKey + '" value="' + esc(ui.date || todayKey) + '"></label>' +
+      '<label>Nota (opcional)<input id="q-note" type="text" placeholder="Detalle" value="' + esc(ui.note) + '"></label>' +
+      '<div class="mute small">Cuenta en el sobre de ' + esc(L.ENV_NAMES[pick(TIPOS, ui.tipo).env].split(' ')[0]) + (pick(METODOS, ui.met).cash ? ' y baja tu dinero disponible.' : '. Con tarjeta de crédito no baja tu efectivo; sube la cuenta que pagas después.') + '</div>' +
       '<button class="full" data-a="addexp">Guardar gasto</button>' + (ui.msg ? '<div class="mute">' + esc(ui.msg) + '</div>' : '') + '</div>';
 
     out += viewCountdown();
 
     if (list.length) {
       out += '<div class="card"><h2>Esta semana</h2>' + list.slice().reverse().map(function (e) {
-        return '<div class="row"><span>' + esc(L.ENV_NAMES[e.env] ? L.ENV_NAMES[e.env].split(' ')[0] : e.env) + (e.note ? ' · ' + esc(e.note) : '') + '<br><span class="mute small">' + fdate(L.parseDate(e.date)) + '</span></span><span><b>' + mx(e.amount) + '</b> <button class="del" data-a="delexp" data-v="' + e.id + '">✕</button></span></div>';
+        return '<div class="row"><span>' + tipoOf(e).e + ' ' + esc(tipoOf(e).n) + (e.note ? ' · ' + esc(e.note) : '') + '<br><span class="mute small">' + fdate(L.parseDate(e.date)) + (pick(METODOS, e.met) ? ' · ' + pick(METODOS, e.met).n : '') + '</span></span><span><b>' + mx(e.amount) + '</b> <button class="del" data-a="delexp" data-v="' + e.id + '">✕</button></span></div>';
       }).join('') + '</div>';
     }
     return out;
@@ -359,9 +382,14 @@
   var reduce = window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
   function fx() {
     var h = '';
+    if (ui.toast && ui.toast.rain && !reduce) {
+      h += '<div class="rain">';
+      for (var j = 0; j < 16; j++) h += '<b style="left:' + Math.round(4 + Math.random() * 90) + '%;animation-delay:' + (Math.random() * 0.8).toFixed(2) + 's;font-size:' + (20 + Math.round(Math.random() * 14)) + 'px">' + ui.toast.rain + '</b>';
+      h += '</div>';
+    }
     if (ui.toast) {
       var t = ui.toast;
-      h += '<div class="toast">' + (t.coin ? '<span>🪙</span>' : '') + (t.xp > 0 ? '<i>+' + t.xp + ' XP</i>' : '') + (t.cards && t.cards.length ? '<span>Insignia: ' + esc(t.cards.join(', ')) + '</span>' : '') + '</div>';
+      h += '<div class="toast">' + (t.text ? '<span>' + esc(t.text) + '</span>' : '') + (t.coin ? '<span>🪙</span>' : '') + (t.xp > 0 ? '<i>+' + t.xp + ' XP</i>' : '') + (t.cards && t.cards.length ? '<span>Insignia: ' + esc(t.cards.join(', ')) + '</span>' : '') + '</div>';
     }
     if (ui.levelup) {
       var cols = ['#ffc247', '#ff3d8b', '#27e3d0', '#fff', '#ff7a45'], conf = '';
@@ -373,7 +401,7 @@
   function render() {
     var app = document.getElementById('app');
     var y = window.scrollY;
-    var views = { hoy: viewHoy, camino: viewCamino, plan: viewPlan, metas: viewMetas, ajustes: viewAjustes };
+    var views = { hoy: viewHoy, gastos: viewGastos, camino: viewCamino, plan: viewPlan, metas: viewMetas, ajustes: viewAjustes };
     app.innerHTML = views[tab]();
     document.getElementById('tabs').innerHTML = TABS.map(function (t) { return '<button class="' + (tab === t[0] ? 'on' : '') + '" data-a="goto" data-v="' + t[0] + '">' + ICON[t[0]] + t[1] + '</button>'; }).join('');
     document.getElementById('fx').innerHTML = fx();
@@ -402,6 +430,48 @@
     if (lv1 > lv0) ui.levelup = lv1;
     render();
   }
+
+  // ---------- gastos e ingresos ----------
+  function viewGastos() {
+    var n = new Date(), s0 = new Date(n.getFullYear(), n.getMonth() + ui.gm, 1), e0 = new Date(s0.getFullYear(), s0.getMonth() + 1, 1);
+    var inR = function (x) { var d = L.parseDate(x.date); return d >= s0 && d < e0; };
+    var ex = S.expenses.filter(inR), inc = (S.incomes || []).filter(inR);
+    var tg = ex.reduce(function (t, x) { return t + (+x.amount || 0); }, 0), ti = inc.reduce(function (t, x) { return t + (+x.amount || 0); }, 0);
+    var byT = {}, byM = {};
+    ex.forEach(function (x) { var t = tipoOf(x); byT[t.k] = byT[t.k] || { t: t, v: 0 }; byT[t.k].v += +x.amount || 0; var m = pick(METODOS, x.met); var mk = m ? m.n : 'Sin método'; byM[mk] = (byM[mk] || 0) + (+x.amount || 0); });
+    var rows = Object.keys(byT).map(function (k) { return byT[k]; }).sort(function (a, b) { return b.v - a.v; });
+    var out = '<h1>Gastos e ingresos</h1><div class="card"><div class="row"><button class="chip" data-a="gmes" data-v="-1">‹</button><b>' + MESES[s0.getMonth()] + ' ' + s0.getFullYear() + '</b><button class="chip" data-a="gmes" data-v="1"' + (ui.gm >= 0 ? ' disabled' : '') + '>›</button></div>' +
+      '<div class="row"><span>Gastos</span><b>' + mx(tg) + '</b></div><div class="row"><span>Ingresos registrados</span><b>' + mx(ti) + '</b></div></div>';
+
+    out += '<div class="card"><h2>Registrar ingreso</h2><label>Monto<input id="i-amt" type="number" inputmode="decimal" step="any" placeholder="0" value="' + esc(ui.iamt) + '"></label>' +
+      '<label>¿Qué fue?</label>' + tiles(ITIPOS, ui.itipo, 'itipo', function (t) { return EMO[t.k] || '💰'; }) +
+      '<label>¿Dónde lo metiste?</label>' + tiles(DESTINOS, ui.idest, 'idest', function (d) { return EMO[d.k]; }) +
+      '<label>Fecha<input id="i-date" type="date" max="' + L.dayKey(n) + '" value="' + esc(ui.idate || L.dayKey(n)) + '"></label>' +
+      '<label>Nota (opcional)<input id="i-note" type="text" placeholder="Detalle" value="' + esc(ui.inote) + '"></label>' +
+      '<div class="mute small">' + (pick(DESTINOS, ui.idest).cash ? 'Suma a tu dinero disponible.' : 'No suma a tu dinero disponible: queda como ahorro o inversión.') + ' No cambia tu ingreso base del plan.</div>' +
+      '<button class="full" data-a="addinc">Guardar ingreso</button>' + (ui.msg ? '<div class="mute">' + esc(ui.msg) + '</div>' : '') + '</div>';
+
+    if (rows.length) {
+      out += '<div class="card"><h2>En qué se fue</h2>' + rows.map(function (r) {
+        return '<div class="row"><span>' + r.t.e + ' ' + esc(r.t.n) + '</span><b>' + mx(r.v) + ' <span class="mute small">' + Math.round(r.v / tg * 100) + '%</span></b></div><div class="bar"><i style="width:' + Math.max(4, Math.round(r.v / tg * 100)) + '%;background:' + r.t.c + '"></i></div>';
+      }).join('') + '</div>';
+      out += '<div class="card"><h2>Cómo pagaste</h2>' + Object.keys(byM).map(function (k) { return '<div class="row"><span>' + esc(k) + '</span><b>' + mx(byM[k]) + '</b></div>'; }).join('') + '</div>';
+    }
+
+    var mov = ex.map(function (x) { return { kind: 'g', x: x }; }).concat(inc.map(function (x) { return { kind: 'i', x: x }; }))
+      .filter(function (m) { return ui.gf === 'todo' || (ui.gf === 'gastos' && m.kind === 'g') || (ui.gf === 'ingresos' && m.kind === 'i'); })
+      .sort(function (a, b) { return a.x.date < b.x.date ? 1 : a.x.date > b.x.date ? -1 : 0; });
+    out += '<div class="card"><h2>Movimientos</h2><div class="chips">' + [['todo', 'Todo'], ['gastos', 'Gastos'], ['ingresos', 'Ingresos']].map(function (f) {
+      return '<button class="chip' + (ui.gf === f[0] ? ' on' : '') + '" data-a="gf" data-v="' + f[0] + '">' + f[1] + '</button>';
+    }).join('') + '</div>' + (mov.length ? mov.map(function (m) {
+      var x = m.x, d = fdate(L.parseDate(x.date));
+      if (m.kind === 'g') { var t = tipoOf(x), me = pick(METODOS, x.met); return '<div class="row"><span>' + t.e + ' ' + esc(t.n) + (x.note ? ' · ' + esc(x.note) : '') + '<br><span class="mute small">' + d + (me ? ' · ' + me.n : '') + '</span></span><span><b>-' + mx(x.amount) + '</b> <button class="del" data-a="delexp" data-v="' + x.id + '">✕</button></span></div>'; }
+      var it = pick(ITIPOS, x.tipo), de = pick(DESTINOS, x.dest);
+      return '<div class="row"><span>💵 ' + esc(it ? it.n : 'Ingreso') + (x.note ? ' · ' + esc(x.note) : '') + '<br><span class="mute small">' + d + (de ? ' · lo metí en ' + de.n : '') + '</span></span><span><b>+' + mx(x.amount) + '</b> <button class="del" data-a="delinc" data-v="' + x.id + '">✕</button></span></div>';
+    }).join('') : '<p class="mute">Nada este mes todavía.</p>') + '</div>';
+    return out;
+  }
+
   function addDep(kind, amount, name) { S.deposits.push({ id: uid(), date: iso(new Date()), amount: amount, kind: kind, name: name || '' }); }
 
   // ---------- eventos ----------
@@ -412,17 +482,46 @@
     function num(id) { var e = document.getElementById(id); return parseFloat(e && e.value); }
     if (a === 'goto') return go(v);
     if (a === 'closemodal') { ui.levelup = 0; return render(); }
-    if (a === 'cat') { ui.cat = v; return render(); }
+    if (a === 'tipo') { ui.tipo = v; return render(); }
+    if (a === 'met') { ui.met = v; return render(); }
+    if (a === 'itipo') { ui.itipo = v; return render(); }
+    if (a === 'idest') { ui.idest = v; return render(); }
+    if (a === 'gf') { ui.gf = v; return render(); }
+    if (a === 'gmes') { ui.gm = Math.min(0, ui.gm + parseInt(v, 10)); return render(); }
+    if (a === 'addinc') {
+      var ia = num('i-amt');
+      if (!(ia > 0)) { ui.msg = 'Escribe un monto.'; return render(); }
+      var idt = document.getElementById('i-date').value || L.dayKey(new Date()); if (idt > L.dayKey(new Date())) idt = L.dayKey(new Date());
+      var dd = pick(DESTINOS, ui.idest), delta = dd.cash ? ia : 0;
+      if (!S.incomes) S.incomes = []; if (!S.cash) S.cash = { amount: 0 };
+      S.incomes.push({ id: uid(), date: idt, amount: ia, tipo: ui.itipo, dest: ui.idest, note: document.getElementById('i-note').value.trim(), cashDelta: delta });
+      S.cash.amount = (+S.cash.amount || 0) + delta;
+      ui.iamt = ''; ui.inote = ''; ui.idate = ''; ui.msg = ''; save(); ui.toast = { text: '¡Entró lana! +' + mx(ia), rain: dd.cash ? '💰' : '📈' }; return render();
+    }
+    if (a === 'delinc') {
+      var di = (S.incomes || []).filter(function (x) { return x.id === v; })[0];
+      if (di) { if (!S.cash) S.cash = { amount: 0 }; S.cash.amount = (+S.cash.amount || 0) - (+di.cashDelta || 0); S.incomes = S.incomes.filter(function (x) { return x.id !== v; }); save(); }
+      return render();
+    }
     if (a === 'nospend') return act(function () { var k = L.dayKey(new Date()); if (S.noSpend.indexOf(k) < 0) S.noSpend.push(k); });
     if (a === 'addexp') {
       var amt = num('q-amt');
       if (!(amt > 0)) { ui.msg = 'Escribe un monto.'; return render(); }
       return act(function () {
-        S.expenses.push({ id: uid(), date: iso(new Date()), amount: amt, env: ui.cat, note: document.getElementById('q-note').value.trim() });
-        ui.msg = 'Guardado.'; ui.amt = ''; ui.note = '';
+        var tp = pick(TIPOS, ui.tipo), me = pick(METODOS, ui.met), qd = document.getElementById('q-date').value || iso(new Date());
+        if (qd > iso(new Date())) qd = iso(new Date());
+        var cd = me.cash ? -amt : 0;
+        if (!S.cash) S.cash = { amount: 0 };
+        S.cash.amount = (+S.cash.amount || 0) + cd;
+        S.expenses.push({ id: uid(), date: qd, amount: amt, env: tp.env, tipo: tp.k, met: me.k, note: document.getElementById('q-note').value.trim(), cashDelta: cd });
+        ui.msg = 'Guardado.'; ui.amt = ''; ui.note = ''; ui.date = '';
       });
     }
-    if (a === 'delexp') { S.expenses = S.expenses.filter(function (e) { return e.id !== v; }); save(); return render(); }
+    if (a === 'delexp') {
+      var dx = S.expenses.filter(function (e) { return e.id === v; })[0];
+      if (dx && dx.cashDelta) S.cash.amount = (+S.cash.amount || 0) - dx.cashDelta;
+      S.expenses = S.expenses.filter(function (e) { return e.id !== v; }); save(); return render();
+    }
     if (a === 'pay') {
       var pa = num('pay-' + v);
       if (!(pa > 0)) return;
@@ -482,6 +581,10 @@
   document.addEventListener('input', function (ev) {
     if (ev.target.id === 'q-amt') ui.amt = ev.target.value;
     if (ev.target.id === 'q-note') ui.note = ev.target.value;
+    if (ev.target.id === 'q-date') ui.date = ev.target.value;
+    if (ev.target.id === 'i-amt') ui.iamt = ev.target.value;
+    if (ev.target.id === 'i-note') ui.inote = ev.target.value;
+    if (ev.target.id === 'i-date') ui.idate = ev.target.value;
   });
   document.addEventListener('change', function (ev) {
     var el = ev.target;

@@ -131,3 +131,13 @@ td:first-child,th:first-child{text-align:left}
 @keyframes flash{0%{box-shadow:0 0 0 0 rgba(255,194,71,.9)}100%{box-shadow:0 0 0 28px rgba(255,194,71,0)}}
 @keyframes fall{to{transform:translateY(110vh) rotate(540deg)}}
 @media (prefers-reduced-motion:reduce){*,*::before,*::after{animation:none!important;transition:none!important}}
+
+.tiles{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin:8px 0}
+.tile{display:flex;flex-direction:column;align-items:center;gap:4px;padding:10px 4px;border-radius:16px;background:var(--noche);color:var(--mute);font:700 12.5px Figtree,sans-serif;letter-spacing:0;border:2px solid var(--linea);border-bottom-width:4px;box-shadow:none;transition:transform .15s}
+.tile .em{font-size:26px;line-height:1;filter:grayscale(.6)}
+.tile:active{transform:scale(.94)}
+.tile.on{color:#fff;border-color:var(--rosa);background:rgba(255,61,139,.16);box-shadow:0 0 16px rgba(255,61,139,.5)}
+.tile.on .em{filter:none;animation:pop .3s ease both}
+.rain{position:fixed;inset:0;pointer-events:none;z-index:45;overflow:hidden}
+.rain b{position:absolute;top:-40px;animation:fall 2.2s ease-in both}
+@media (prefers-reduced-motion:reduce){.tile.on .em{animation:none}}
