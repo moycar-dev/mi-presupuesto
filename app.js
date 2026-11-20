@@ -124,6 +124,7 @@
     if (!(+S.income > 0)) {
       return out + '<h1>Bienvenido</h1><div class="card"><h2>1. Carga tu plan</h2><p class="mute">Copia tu código del chat, ábrelo aquí con un toque y ya queda todo: ingresos, pagos, metas y gastos.</p>' +
         '<button class="full gold" data-a="pastecode">Pegar mi código</button>' +
+        '<label>O elige el archivo de tu plan (el más seguro)<input type="file" id="impfile2" accept=".json,.txt,application/json,text/plain"></label>' +
         '<label>¿No te deja pegar? Pégalo aquí<textarea id="imp2" rows="3" placeholder="SF1:..."></textarea></label><button class="sec full" data-a="import2">Cargar plan</button>' +
         (ui.msg ? '<div class="note">' + esc(ui.msg) + '</div>' : '') + '</div>' +
         '<div class="card"><h2>2. O empieza desde cero</h2><p class="mute">Captura tu ingreso y tus gastos fijos en Ajustes.</p><button class="sec full" data-a="goto" data-v="ajustes">Ir a Ajustes</button></div>';
@@ -378,9 +379,9 @@
     out += '<div class="card"><h2>Respaldo</h2><p class="mute">Tus datos solo viven en este teléfono. Copia un respaldo de vez en cuando.</p>' +
       '<button class="full" data-a="copy">Copiar respaldo</button><button class="sec full" data-a="download">Descargar archivo</button>' +
       '<label>Importar (pega el respaldo aquí)<textarea id="imp" rows="4"></textarea></label><button class="sec full" data-a="import">Importar</button>' +
-      '<label>O elige un archivo<input type="file" id="impfile" accept=".json,application/json"></label>' +
+      '<label>O elige un archivo<input type="file" id="impfile" accept=".json,.txt,application/json,text/plain"></label>' +
       (ui.msg ? '<div class="note good">' + esc(ui.msg) + '</div>' : '') +
-      '<button class="sec full" data-a="refresh">Actualizar la app (versión 9)</button>' +
+      '<button class="sec full" data-a="refresh">Actualizar la app (versión 10)</button>' +
       '<button class="del full" data-a="reset">Borrar todos mis datos</button></div>';
     return out;
   }
@@ -610,7 +611,7 @@
       if (!o || typeof o !== 'object' || !('income' in o)) throw new Error('formato');
       S = merge(L.defaults(), o); save(); tab = 'hoy'; ui.msg = '';
       ui.toast = { text: 'Plan cargado', rain: '🌅' }; render(); window.scrollTo(0, 0);
-    } catch (e) { ui.msg = 'No pude leer ese código. Cópialo completo y vuelve a intentar.'; render(); }
+    } catch (e) { ui.msg = 'No pude leer ese código. Mejor elige el archivo del plan en lugar de pegarlo.'; render(); }
   }
   document.addEventListener('input', function (ev) {
     if (ev.target.id === 'q-amt') ui.amt = ev.target.value;
@@ -622,7 +623,7 @@
   });
   document.addEventListener('change', function (ev) {
     var el = ev.target;
-    if (el.id === 'impfile' && el.files && el.files[0]) {
+    if ((el.id === 'impfile' || el.id === 'impfile2') && el.files && el.files[0]) {
       var fr = new FileReader(); fr.onload = function () { doImport(fr.result); }; fr.readAsText(el.files[0]); return;
     }
     var p = el.dataset && el.dataset.f;
